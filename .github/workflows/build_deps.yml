@@ -12,14 +12,34 @@ jobs:
     steps:
       - name: Download Debs
         run: |
-          echo ">>> 正在下载内核编译依赖..."
+          echo ">>> 正在下载官方规定的内核编译全量依赖..."
           mkdir -p debs && cd debs
           sudo apt-get update -qq
-          # 下载所有内核编译需要的包
-          apt-get download libelf-dev zlib1g-dev dwarves pahole libncurses5-dev bison flex libssl-dev
           
-          echo ">>> 正在打包..."
+          # 从 AOSP 源码规范中提取的完整依赖列表
+          apt-get download \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            libncurses5-dev \
+            dwarves \
+            zlib1g-dev \
+            kmod \
+            cpio \
+            rsync \
+            python3 \
+            liblz4-tool \
+            libxml2-utils
+          
+          echo ">>> 正在打包离线依赖..."
           tar -czvf ../kernel_deps.tar.gz *
+          
+          echo ">>> 检查下载结果："
+          ls -lh | wc -l
+          echo "个依赖包已下载"
 
       - name: Upload to Releases
         uses: softprops/action-gh-release@v1
