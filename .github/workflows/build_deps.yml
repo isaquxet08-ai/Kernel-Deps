@@ -1,4 +1,4 @@
-name: Fetch and Release Debian Deps
+name: Fetch and Release Full Debian Deps
 
 on:
   workflow_dispatch:
@@ -10,14 +10,13 @@ jobs:
   build-deps:
     runs-on: ubuntu-22.04
     steps:
-      - name: Download Debs
+      - name: Download Full Dependency Tree
         run: |
-          echo ">>> 正在下载官方规定的内核编译全量依赖..."
-          mkdir -p debs && cd debs
+          echo ">>> 正在解析并下载完整依赖树..."
           sudo apt-get update -qq
           
-          # 从 AOSP 源码规范中提取的完整依赖列表
-          apt-get download \
+          # 核心魔法：--download-only 会把所有依赖及其底层依赖全部下载到缓存
+          sudo apt-get install -y --download-only \
             build-essential \
             bc \
             bison \
@@ -33,19 +32,20 @@ jobs:
             python3 \
             liblz4-tool \
             libxml2-utils
+
+          echo ">>> 正在打包整个缓存目录..."
+          mkdir -p offline_debs
+          cp /var/cache/apt/archives/*.deb offline_debs/
+          tar -czvf kernel_deps_full.tar.gz offline_debs/*
           
-          echo ">>> 正在打包离线依赖..."
-          tar -czvf ../kernel_deps.tar.gz *
-          
-          echo ">>> 检查下载结果："
-          ls -lh | wc -l
-          echo "个依赖包已下载"
+          echo ">>> 依赖包数量："
+          ls -1 offline_debs | wc -l
 
       - name: Upload to Releases
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: deps-v1.0
-          name: Kernel Dependencies v1.0
-          files: kernel_deps.tar.gz
+          tag_name: deps-v2.0
+          name: Full Kernel Dependencies v2.0
+          files: kernel_deps_full.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
